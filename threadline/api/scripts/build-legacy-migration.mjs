@@ -119,6 +119,20 @@ for (const name of files) {
   sourceSql.push(sql);
   chunks.push(`\n-- Source migration: ${name}\n`, sql);
 }
+
+// Do not replay a historical privilege rule for a function that a later
+// source migration removes. Those grants would fail after the DROP FUNCTION
+// has already run in the combined migration.
+const removedFunctions = new Set();
+const functionMutation = /\b(CREATE\s+(?:OR\s+REPLACE\s+)?FUNCTION|DROP\s+FUNCTION(?:\s+IF\s+EXISTS)?)\s+([a-z0-9_.\"]+)\s*\(/gi;
+for (const sql of sourceSql) {
+  for (const match of sql.matchAll(functionMutation)) {
+    const name = match[2].split(".").at(-1).replaceAll('"', "").toLowerCase();
+    if (match[1].toLowerCase().startsWith("drop")) removedFunctions.add(name);
+    else removedFunctions.delete(name);
+  }
+}
+
 chunks.push(`
 -- Recreate Supabase's baseline SQL privileges, then replay source grant/revoke
 -- statements in migration order so explicit restrictions remain in force.
@@ -139,6 +153,10 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON auth.users TO service_role;
 
 for (const sql of sourceSql) {
   for (const statement of sql.match(/^\s*(?:GRANT|REVOKE)\b[\s\S]*?;/gim) ?? []) {
+    const referencesRemovedFunction = [...removedFunctions].some((name) =>
+      new RegExp(`\\b${name}\\s*\\(`, "i").test(statement),
+    );
+    if (referencesRemovedFunction) continue;
     chunks.push(`\n-- Preserve a source migration privilege rule.\n${statement.trim()}\n`);
   }
 }

@@ -2265,12 +2265,6 @@ revoke all on function public.update_app_settings(integer, integer, text) from p
 grant execute on function public.update_app_settings(integer, integer, text) to authenticated, service_role;
 
 -- Preserve a source migration privilege rule.
-revoke all on function public.set_invited_account_role(uuid, text, uuid, text) from public, anon, authenticated;
-
--- Preserve a source migration privilege rule.
-grant execute on function public.set_invited_account_role(uuid, text, uuid, text) to service_role;
-
--- Preserve a source migration privilege rule.
 revoke all on function public.record_super_admin_user_action(uuid, uuid, text, text) from public, anon, authenticated;
 
 -- Preserve a source migration privilege rule.
@@ -2307,12 +2301,6 @@ revoke all on function public.review_freelancer_registration(uuid, boolean, uuid
 grant execute on function public.review_freelancer_registration(uuid, boolean, uuid, text) to service_role;
 
 -- Preserve a source migration privilege rule.
-revoke all on function public.set_invited_account_role(uuid, text, uuid, text) from public, anon, authenticated;
-
--- Preserve a source migration privilege rule.
-grant execute on function public.set_invited_account_role(uuid, text, uuid, text) to service_role;
-
--- Preserve a source migration privilege rule.
 revoke all on public.freelancer_bank_accounts from public, anon, authenticated;
 
 -- Preserve a source migration privilege rule.
@@ -2338,18 +2326,6 @@ revoke all on public.freelancer_compensation from public, anon, authenticated;
 
 -- Preserve a source migration privilege rule.
 grant all on public.freelancer_compensation to service_role;
-
--- Preserve a source migration privilege rule.
-revoke all on function public.finance_freelancer_compensation() from public, anon;
-
--- Preserve a source migration privilege rule.
-grant execute on function public.finance_freelancer_compensation() to authenticated, service_role;
-
--- Preserve a source migration privilege rule.
-revoke all on function public.set_freelancer_compensation(uuid, text, bigint) from public, anon;
-
--- Preserve a source migration privilege rule.
-grant execute on function public.set_freelancer_compensation(uuid, text, bigint) to authenticated, service_role;
 
 -- Preserve a source migration privilege rule.
 revoke all on function public.finance_freelancer_payment_settings() from public, anon;
