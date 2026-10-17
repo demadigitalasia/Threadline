@@ -2322,12 +2322,6 @@ revoke all on function public.finish_job(text, int) from public, anon;
 grant execute on function public.finish_job(text, int) to authenticated, service_role;
 
 -- Preserve a source migration privilege rule.
-revoke all on public.freelancer_compensation from public, anon, authenticated;
-
--- Preserve a source migration privilege rule.
-grant all on public.freelancer_compensation to service_role;
-
--- Preserve a source migration privilege rule.
 revoke all on function public.finance_freelancer_payment_settings() from public, anon;
 
 -- Preserve a source migration privilege rule.

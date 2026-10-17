@@ -132,6 +132,13 @@ for (const sql of sourceSql) {
     else removedFunctions.delete(name);
   }
 }
+const renamedRelations = new Set();
+const relationRename = /\bALTER\s+TABLE(?:\s+IF\s+EXISTS)?\s+(?:ONLY\s+)?([a-z0-9_."]+)\s+RENAME\s+TO\s+[a-z0-9_."]+/gi;
+for (const sql of sourceSql) {
+  for (const match of sql.matchAll(relationRename)) {
+    renamedRelations.add(match[1].split(".").at(-1).replaceAll('"', "").toLowerCase());
+  }
+}
 
 chunks.push(`
 -- Recreate Supabase's baseline SQL privileges, then replay source grant/revoke
@@ -156,7 +163,10 @@ for (const sql of sourceSql) {
     const referencesRemovedFunction = [...removedFunctions].some((name) =>
       new RegExp(`\\b${name}\\s*\\(`, "i").test(statement),
     );
-    if (referencesRemovedFunction) continue;
+    const referencesRenamedRelation = [...renamedRelations].some((name) =>
+      new RegExp(`\\b${name}\\b`, "i").test(statement),
+    );
+    if (referencesRemovedFunction || referencesRenamedRelation) continue;
     chunks.push(`\n-- Preserve a source migration privilege rule.\n${statement.trim()}\n`);
   }
 }
