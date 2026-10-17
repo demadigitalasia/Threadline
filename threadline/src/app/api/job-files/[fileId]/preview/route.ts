@@ -98,11 +98,11 @@ export async function GET(request: Request, { params }: RouteContext) {
   const session = sessionResponse.ok ? await sessionResponse.json() as { user: unknown } : { user: null };
   if (!session.user) return htmlError("Masuk kembali untuk melihat file ini.", 401);
 
-  const fileResponse = await callBackend("data/job_files", request, {
+  const metadataResponse = await callBackend("data/job_files", request, {
     action: "select", columns: ["name", "path", "file_kind", "size_bytes"],
     filters: [{ column: "id", operator: "eq", value: fileId }], maybeSingle: true,
   });
-  const fileResult = fileResponse.ok ? await fileResponse.json() as { data: { name: string; path: string; file_kind: string; size_bytes: number } | null } : null;
+  const fileResult = metadataResponse.ok ? await metadataResponse.json() as { data: { name: string; path: string; file_kind: string; size_bytes: number } | null } : null;
   const file = fileResult?.data;
   if (!file) return htmlError("File tidak ditemukan atau Anda tidak memiliki akses.", 404);
   if (file.size_bytes > 1_073_741_824) return htmlError("Ukuran file melebihi batas pratinjau 1 GiB.", 413);

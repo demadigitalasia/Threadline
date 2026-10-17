@@ -241,9 +241,9 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         freelancerBankAccountError = bankResult.error.message;
       } else if (bankResult.data) {
         freelancerBankAccount = {
-          bankName: bankResult.data.bank_name,
-          accountNumber: bankResult.data.account_number,
-          accountHolder: bankResult.data.account_holder,
+          bankName: bankResult.data.bank_name as string,
+          accountNumber: bankResult.data.account_number as string,
+          accountHolder: bankResult.data.account_holder as string,
         };
       }
     }
@@ -444,8 +444,6 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const path = `${userId}/avatar-${Date.now()}.${extension}`;
         const { error: uploadError } = await sb.storage.from("profile-photos").upload(path, file, {
           contentType: file.type,
-          cacheControl: "3600",
-          upsert: false,
         });
         if (uploadError) return { ok: false, error: uploadError.message };
 
@@ -612,7 +610,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         const safeName = input.proof.name.replace(/[^a-zA-Z0-9._-]+/g, "_");
         const path = `${userId}/${Date.now()}-${globalThis.crypto.randomUUID()}-${safeName}`;
         const uploaded = await sb.storage.from("finance-payment-proofs").upload(path, input.proof, {
-          contentType: input.proof.type, upsert: false,
+          contentType: input.proof.type,
         });
         if (uploaded.error) return { ok: false, error: uploaded.error.message };
         const result = await rpc(sb, "record_freelancer_payment", {
@@ -713,7 +711,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
           await rpc(sb, "release_upload_reservation", { p_reservation: rid });
           return { ok: false, error: msg };
         };
-        const up = await sb.storage.from("job-files").upload(path, file, { contentType: file.type || undefined, upsert: false });
+        const up = await sb.storage.from("job-files").upload(path, file, { contentType: file.type || undefined });
         if (up.error) return fail(up.error.message);
         const ins = await sb.from("job_files").insert({
           job_id: jobId, name: file.name, path, file_kind: kind, file_role: fileRole,

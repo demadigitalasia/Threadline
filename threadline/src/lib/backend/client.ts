@@ -2,6 +2,8 @@
 
 type ApiError = { message: string; code?: string };
 type Result<T = unknown> = { data: T | null; error: ApiError | null };
+type AuthUser = { id: string; email?: string | null; email_confirmed_at?: string | null };
+type DbRow = Record<string, unknown>;
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`/api/backend/${path}`, {
@@ -31,7 +33,7 @@ function notifyAuth(event: "SIGNED_IN" | "SIGNED_OUT" | "USER_UPDATED") {
   if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("threadline:auth", { detail: event }));
 }
 
-class QueryBuilder implements PromiseLike<Result<unknown>> {
+class QueryBuilder implements PromiseLike<Result<DbRow[]>> {
   private query: Record<string, unknown> = { action: "select" };
   constructor(private readonly table: string) {}
 
@@ -40,14 +42,14 @@ class QueryBuilder implements PromiseLike<Result<unknown>> {
   neq(column: string, value: unknown) { this.addFilter({ column, operator: "neq", value }); return this; }
   order(column: string, options?: { ascending?: boolean }) { this.query.order = { column, ascending: options?.ascending }; return this; }
   limit(limit: number) { this.query.limit = limit; return this; }
-  maybeSingle() { this.query.maybeSingle = true; return this.execute(); }
+  maybeSingle(): Promise<Result<DbRow>> { this.query.maybeSingle = true; return this.execute<DbRow>(); }
   insert(values: Record<string, unknown> | Array<Record<string, unknown>>) { this.query.action = "insert"; this.query.values = values; return this; }
-  upsert(values: Record<string, unknown> | Array<Record<string, unknown>>) { this.query.action = "upsert"; this.query.values = values; return this; }
+  upsert(values: Record<string, unknown> | Array<Record<string, unknown>>, _options?: { onConflict?: string }) { this.query.action = "upsert"; this.query.values = values; return this; }
   update(values: Record<string, unknown>) { this.query.action = "update"; this.query.values = values; return this; }
   delete() { this.query.action = "delete"; return this; }
 
-  then<TResult1 = Result<unknown>, TResult2 = never>(
-    onfulfilled?: ((value: Result<unknown>) => TResult1 | PromiseLike<TResult1>) | null,
+  then<TResult1 = Result<DbRow[]>, TResult2 = never>(
+    onfulfilled?: ((value: Result<DbRow[]>) => TResult1 | PromiseLike<TResult1>) | null,
     onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
   ): PromiseLike<TResult1 | TResult2> {
     return this.execute().then(onfulfilled, onrejected);
@@ -58,13 +60,13 @@ class QueryBuilder implements PromiseLike<Result<unknown>> {
     this.query.filters = [...filters, filter];
   }
 
-  private async execute(): Promise<Result<unknown>> {
+  private async execute<T = DbRow[]>(): Promise<Result<T>> {
     try {
-      const response = await request<{ data: unknown; error: ApiError | null }>(`data/${encodeURIComponent(this.table)}`, {
+      const response = await request<{ data: T; error: ApiError | null }>(`data/${encodeURIComponent(this.table)}`, {
         method: "POST", body: JSON.stringify(this.query),
       });
       return resultOf(response.data, response.error);
-    } catch (error) { return resultOf(null, toApiError(error)); }
+    } catch (error) { return resultOf<T>(null, toApiError(error)); }
   }
 }
 
@@ -82,7 +84,7 @@ class StorageBucket {
         method: "POST", body: JSON.stringify({ intentId }),
       });
       return resultOf({ path });
-    } catch (error) { return resultOf(null, toApiError(error)); }
+    } catch (error) { return resultOf<{ path: string }>(null, toApiError(error)); }
   }
   async remove(paths: string[]): Promise<Result<unknown>> {
     try { return resultOf(await request(`storage/${encodeURIComponent(this.bucket)}`, { method: "DELETE", body: JSON.stringify({ paths }) })); }
@@ -94,7 +96,7 @@ class StorageBucket {
         method: "POST", body: JSON.stringify({ path }),
       });
       return resultOf(result);
-    } catch (error) { return resultOf(null, toApiError(error)); }
+    } catch (error) { return resultOf<{ signedUrl: string }>(null, toApiError(error)); }
   }
 }
 
@@ -118,7 +120,7 @@ export class ThreadlineClient {
   readonly auth = {
     signInWithPassword: async (input: { email: string; password: string; otp?: string }) => {
       try {
-        const data = await request<{ user: unknown }>("auth/sign-in", { method: "POST", body: JSON.stringify(input) });
+        const data = await request<{ user: AuthUser }>("auth/sign-in", { method: "POST", body: JSON.stringify(input) });
         notifyAuth("SIGNED_IN");
         return { data: { user: data.user, session: { user: data.user } }, error: null };
       } catch (error) { return { data: { user: null, session: null }, error: toApiError(error) }; }
@@ -139,7 +141,7 @@ export class ThreadlineClient {
       } catch (error) { return { data: null, error: toApiError(error) }; }
     },
     getUser: async () => {
-      try { const data = await request<{ user: unknown }>("auth/session"); return { data: { user: data.user }, error: null }; }
+      try { const data = await request<{ user: AuthUser | null }>("auth/session"); return { data: { user: data.user }, error: null }; }
       catch (error) { return { data: { user: null }, error: toApiError(error) }; }
     },
     getSession: async () => {

@@ -14,7 +14,7 @@ html {
 body {
   min-height: 100%;
   color: #18181b;
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  font-family: ui-sans-serif, system-ui, sans-serif;
   background-color: #f4f4f8;
   background-image:
     radial-gradient(42rem 22rem at 8% -6%, rgba(99, 102, 241, 0.16), transparent 60%),
