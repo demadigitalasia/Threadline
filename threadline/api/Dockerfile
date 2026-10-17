@@ -4,6 +4,9 @@ ENV MIGRATION_DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build
 COPY package*.json ./
 RUN npm ci
 
+FROM deps AS production-dependencies
+RUN npm prune --omit=dev
+
 FROM node:22-alpine AS build
 WORKDIR /app
 ENV MIGRATION_DATABASE_URL=postgresql://build:build@127.0.0.1:5432/build
@@ -14,7 +17,7 @@ RUN npx prisma generate && npm run build
 FROM node:22-alpine AS runtime
 ENV NODE_ENV=production
 WORKDIR /app
-COPY --from=build /app/node_modules ./node_modules
+COPY --from=production-dependencies /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/prisma.config.ts ./prisma.config.ts
