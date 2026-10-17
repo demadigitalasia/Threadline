@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { AuthHighlights, AuthShell, FieldError, btnPrimary, inputCls } from "@/components/auth-shell";
-import { createClient } from "@/lib/supabase/client";
-import { getAuthRedirectUrl } from "@/lib/supabase/redirects";
+import { createClient } from "@/lib/backend/client";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -23,9 +22,7 @@ export default function ForgotPasswordPage() {
             if (!email.trim()) { setError("Isi email"); return; }
             setBusy(true);
             try {
-              const { error: err } = await createClient().auth.resetPasswordForEmail(email.trim(), {
-                redirectTo: getAuthRedirectUrl("/reset-password"),
-              });
+              const { error: err } = await createClient().auth.resetPasswordForEmail(email.trim());
               if (err) { setError("Permintaan reset belum dapat diproses. Coba beberapa saat lagi."); return; }
               setSent(true);
             } catch {

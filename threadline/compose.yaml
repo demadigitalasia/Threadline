@@ -1,0 +1,81 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: threadline
+      POSTGRES_USER: ${POSTGRES_USER:-threadline_owner}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+      THREADLINE_APP_PASSWORD: ${THREADLINE_APP_PASSWORD:?Set THREADLINE_APP_PASSWORD in .env}
+    volumes:
+      - threadline_postgres:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d threadline"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks:
+      - database
+
+  api:
+    build:
+      context: ./api
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      FRONTEND_URL: ${FRONTEND_URL:?Set FRONTEND_URL in .env}
+      DATABASE_URL: postgresql://threadline_app:${THREADLINE_APP_PASSWORD:?Set THREADLINE_APP_PASSWORD in .env}@db:5432/threadline
+      MIGRATION_DATABASE_URL: postgresql://${POSTGRES_USER:-threadline_owner}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/threadline
+      R2_ENDPOINT: ${R2_ENDPOINT:?Set R2_ENDPOINT in .env}
+      R2_BUCKET: ${R2_BUCKET:-threadline-private}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:?Set R2_ACCESS_KEY_ID in .env}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY:?Set R2_SECRET_ACCESS_KEY in .env}
+      MFA_ENCRYPTION_KEY: ${MFA_ENCRYPTION_KEY:?Set MFA_ENCRYPTION_KEY in .env}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM: ${SMTP_FROM:-}
+      INITIAL_SUPER_ADMIN_EMAIL: ${INITIAL_SUPER_ADMIN_EMAIL:-}
+      INITIAL_SUPER_ADMIN_NAME: ${INITIAL_SUPER_ADMIN_NAME:-}
+      INITIAL_SUPER_ADMIN_PASSWORD: ${INITIAL_SUPER_ADMIN_PASSWORD:-}
+    expose:
+      - "3001"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3001/v1/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 20s
+      timeout: 5s
+      retries: 10
+    networks:
+      - app
+      - database
+
+  web:
+    build:
+      context: .
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      THREADLINE_API_URL: http://api:3001
+    expose:
+      - "3000"
+    depends_on:
+      api:
+        condition: service_healthy
+    networks:
+      - app
+
+volumes:
+  threadline_postgres:
+
+networks:
+  app:
+  database:
+    internal: true

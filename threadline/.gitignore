@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+!api/.env.example
 
 # vercel
 .vercel
@@ -40,6 +42,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Supabase local development state
+# Database local development state
+database/.local/
 supabase/.branches/
 supabase/.temp/

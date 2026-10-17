@@ -3,8 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { AuthShell, FieldError, btnPrimary, inputCls } from "@/components/auth-shell";
-import { createClient } from "@/lib/supabase/client";
-import { getAuthRedirectUrl } from "@/lib/supabase/redirects";
+import { createClient } from "@/lib/backend/client";
 
 export default function RegisterPage() {
   const [name, setName] = useState("");
@@ -39,14 +38,17 @@ export default function RegisterPage() {
             if (password !== confirm) { setError("Konfirmasi kata sandi tidak sama"); return; }
             setBusy(true);
             try {
-              await createClient().auth.signUp({
+              const { error: signupError } = await createClient().auth.signUp({
                 email: email.trim(),
                 password,
                 options: {
                   data: { name: name.trim(), whatsapp: whatsappValue },
-                  emailRedirectTo: getAuthRedirectUrl("/verifikasi-email"),
                 },
               });
+              if (signupError) {
+                setError("Pendaftaran belum dapat diproses. Periksa koneksi dan coba lagi sebentar.");
+                return;
+              }
               // Keep the same response for successful, duplicate, and rejected
               // sign-ups so this screen cannot confirm whether an email exists.
               setSentTo(email.trim());

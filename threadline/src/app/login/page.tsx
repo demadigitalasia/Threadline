@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { AuthHighlights, AuthShell, FieldError, btnPrimary, inputCls } from "@/components/auth-shell";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/backend/client";
 
 function MailIcon() {
   return (
@@ -48,6 +48,10 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
+  const [mfaMode, setMfaMode] = useState<"none" | "challenge" | "setup">("none");
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaSecret, setMfaSecret] = useState<string | null>(null);
+  const [mfaSetupUrl, setMfaSetupUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -66,8 +70,20 @@ export default function LoginPage() {
           if (!email.trim() || !password) { setError("Isi email dan kata sandi"); return; }
           setBusy(true);
           try {
-            const { error: err } = await createClient().auth.signInWithPassword({ email: email.trim(), password });
+            const client = createClient();
+            const { error: err } = await client.auth.signInWithPassword({
+              email: email.trim(), password, ...(mfaMode === "challenge" ? { otp: mfaCode } : {}),
+            });
             if (err) {
+              if (err.code === "MFA_REQUIRED") { setMfaMode("challenge"); setError("Masukkan kode 6 digit dari aplikasi autentikator."); return; }
+              if (err.code === "MFA_SETUP_REQUIRED") {
+                const enrollment = await client.auth.beginMfaEnrollment({ email: email.trim(), password });
+                setMfaSecret(enrollment.secret);
+                setMfaSetupUrl(enrollment.otpauthUrl);
+                setMfaMode("setup");
+                setError("Akun Super Admin perlu menghubungkan autentikator terlebih dahulu.");
+                return;
+              }
               setError("Email atau kata sandi salah.");
               return;
             }
@@ -100,9 +116,41 @@ export default function LoginPage() {
             </button>
           </span>
         </div>
+        {mfaMode !== "none" && (
+          <div className="space-y-2 rounded-xl border border-indigo-100 bg-indigo-50 p-3">
+            {mfaMode === "setup" && mfaSecret && (
+              <div className="space-y-1 text-xs text-indigo-950">
+                <p>Tambahkan Threadline ke aplikasi autentikator menggunakan kunci ini:</p>
+                <code className="block select-all break-all rounded-lg bg-white p-2 font-mono">{mfaSecret}</code>
+                {mfaSetupUrl && <p className="break-all text-[10px] text-indigo-700">{mfaSetupUrl}</p>}
+                <p>Setelah tersimpan, masukkan kode yang tampil untuk mengaktifkannya.</p>
+              </div>
+            )}
+            <label className="block space-y-1 text-sm font-medium text-zinc-700">
+              <span className="block">Kode autentikator</span>
+              <input className={inputCls} inputMode="numeric" autoComplete="one-time-code" value={mfaCode} onChange={(e) => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))} required minLength={6} maxLength={6} />
+            </label>
+          </div>
+        )}
         <FieldError msg={error} />
-        <button className={`${btnPrimary} flex items-center justify-center gap-2`} disabled={busy}>
-          {busy && <Spinner />} {busy ? "Memeriksa…" : "Masuk ke Threadline"}
+        <button
+          type={mfaMode === "setup" ? "button" : "submit"}
+          className={`${btnPrimary} flex items-center justify-center gap-2`}
+          disabled={busy}
+          onClick={mfaMode === "setup" ? async (event) => {
+            event.preventDefault();
+            setError(null);
+            setBusy(true);
+            try {
+              const { error: err } = await createClient().auth.confirmMfaEnrollment({ email: email.trim(), password, code: mfaCode });
+              if (err) { setError(err.message || "Kode autentikator tidak valid."); return; }
+              router.push("/dashboard");
+              router.refresh();
+            } catch { setError("Autentikator belum dapat diaktifkan. Periksa kodenya lalu coba lagi."); }
+            finally { setBusy(false); }
+          } : undefined}
+        >
+          {busy && <Spinner />} {busy ? "Memeriksa…" : mfaMode === "setup" ? "Aktifkan & masuk" : mfaMode === "challenge" ? "Verifikasi & masuk" : "Masuk ke Threadline"}
         </button>
       </form>
       <div className="my-4 flex items-center gap-3 text-[11px] font-medium uppercase tracking-widest text-zinc-400">

@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { AuthShell, FieldError } from "@/components/auth-shell";
-import { exchangeAuthCode } from "@/lib/supabase/auth-callback";
-import { createClient } from "@/lib/supabase/client";
+import { exchangeAuthCode } from "@/lib/backend/auth-callback";
+import { createClient } from "@/lib/backend/client";
 
 function VerifyBox() {
   const router = useRouter();
@@ -27,43 +27,20 @@ function VerifyBox() {
       done("Tautan tidak valid atau kedaluwarsa.");
       return () => { active = false; };
     }
-    if (code) {
-      void exchangeAuthCode(code).then(async (ok) => {
-        if (!ok) { done("Tautan tidak valid atau kedaluwarsa."); return; }
-        try {
-          const { data, error: err } = await sb.auth.getUser();
-          done(!err && data.user?.email_confirmed_at ? null : "Tautan tidak valid atau kedaluwarsa.");
-        } catch {
-          done("Tautan tidak valid atau kedaluwarsa.");
-        }
-      });
+    if (!code) {
+      done("Tautan verifikasi tidak ditemukan. Buka tautan dari email yang sama di browser ini.");
       return () => { active = false; };
-    } else {
-      // Hash implisit hanya sukses bila sesi yang diproses cocok dengan token callback.
-      const hash = new URLSearchParams(window.location.hash.slice(1));
-      const accessToken = hash.get("access_token");
-      if (hash.get("type") !== "signup" || !accessToken) {
-        done("Sesi verifikasi tidak ditemukan. Buka tautan dari email yang sama di browser ini.");
-        return () => { active = false; };
-      }
-
-      const { data: { subscription } } = sb.auth.onAuthStateChange((_event, session) => {
-        if (session?.access_token === accessToken && session.user.email_confirmed_at) done(null);
-      });
-      const timeout = window.setTimeout(() => {
-        void sb.auth.getSession().then(({ data, error: err }) => {
-          const session = data.session;
-          done(!err && session?.access_token === accessToken && session.user.email_confirmed_at
-            ? null
-            : "Tautan tidak valid atau kedaluwarsa.");
-        }).catch(() => done("Tautan tidak valid atau kedaluwarsa."));
-      }, 600);
-      return () => {
-        active = false;
-        window.clearTimeout(timeout);
-        subscription.unsubscribe();
-      };
     }
+    void exchangeAuthCode(code).then(async (ok) => {
+      if (!ok) { done("Tautan tidak valid atau kedaluwarsa."); return; }
+      try {
+        const { data, error: err } = await sb.auth.getUser();
+        done(!err && data.user?.email_confirmed_at ? null : "Tautan tidak valid atau kedaluwarsa.");
+      } catch {
+        done("Tautan tidak valid atau kedaluwarsa.");
+      }
+    });
+    return () => { active = false; };
   }, [params]);
 
   if (state === "working") return <div className="text-sm text-zinc-500">Memverifikasi…</div>;

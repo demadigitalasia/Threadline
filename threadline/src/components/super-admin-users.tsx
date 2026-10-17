@@ -147,7 +147,7 @@ export function SuperAdminUsersPanel({ onToast }: { onToast: Toast }) {
     }
     setDrafts((current) => { const next = { ...current }; delete next[profile.id]; return next; });
     if (profile.isActive && !draft.isActive) {
-      const response = await fetch(`/api/super-admin/accounts/${profile.id}/actions`, {
+      const response = await fetch(`/api/backend/super-admin/accounts/${profile.id}/actions`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ action: "revoke_sessions", reason: draft.reason }),
@@ -169,7 +169,7 @@ export function SuperAdminUsersPanel({ onToast }: { onToast: Toast }) {
     }
     setCreatingAccount(true);
     try {
-      const response = await fetch("/api/super-admin/accounts", {
+      const response = await fetch("/api/backend/super-admin/accounts", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ name, email, role: accountRole, password: accountPassword, reason: accountReason }),
@@ -193,7 +193,7 @@ export function SuperAdminUsersPanel({ onToast }: { onToast: Toast }) {
     if (!reason) return;
     setActionId(`${profile.id}:${action}`);
     try {
-      const response = await fetch(`/api/super-admin/accounts/${profile.id}/actions`, {
+      const response = await fetch(`/api/backend/super-admin/accounts/${profile.id}/actions`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ action, reason }),
@@ -231,7 +231,7 @@ export function SuperAdminUsersPanel({ onToast }: { onToast: Toast }) {
     }
     setSavingAccount(true);
     try {
-      const response = await fetch(`/api/super-admin/accounts/${editingAccount.profileId}`, {
+      const response = await fetch(`/api/backend/super-admin/accounts/${editingAccount.profileId}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
         body: JSON.stringify(editingAccount),
@@ -262,7 +262,7 @@ export function SuperAdminUsersPanel({ onToast }: { onToast: Toast }) {
     setDeletionError("");
     setDeletingId(deletingAccount.profileId);
     try {
-      const response = await fetch(`/api/managed-accounts/${deletingAccount.profileId}`, {
+      const response = await fetch(`/api/backend/managed-accounts/${deletingAccount.profileId}`, {
         method: "DELETE",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ confirmation: deletingAccount.confirmation, reason: deletingAccount.reason }),

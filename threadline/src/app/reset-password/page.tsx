@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { AuthShell, FieldError, btnPrimary, inputCls } from "@/components/auth-shell";
-import { exchangeAuthCode } from "@/lib/supabase/auth-callback";
-import { createClient } from "@/lib/supabase/client";
+import { exchangeAuthCode } from "@/lib/backend/auth-callback";
+import { createClient } from "@/lib/backend/client";
 
 function ResetForm() {
   const router = useRouter();
@@ -16,10 +16,9 @@ function ResetForm() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // Alur PKCE (?code) perlu ditukar manual; hash implisit ditangani SDK otomatis.
+  // Password reset links use a one-time code exchanged for a restricted reset session.
   useEffect(() => {
     let active = true;
-    const sb = createClient();
     const code = params.get("code");
     const callbackError = params.get("error") || params.get("error_code") || params.get("error_description");
     if (callbackError) {
@@ -27,36 +26,14 @@ function ResetForm() {
       return () => { active = false; window.clearTimeout(timeout); };
     }
 
-    if (code) {
-      void exchangeAuthCode(code).then((ok) => {
-        if (active) setStatus(ok ? "ready" : "invalid");
-      });
-      return () => { active = false; };
-    }
-
-    const hash = new URLSearchParams(window.location.hash.slice(1));
-    const recoveryToken = hash.get("access_token");
-    if (hash.get("type") !== "recovery" || !recoveryToken) {
+    if (!code) {
       const timeout = window.setTimeout(() => { if (active) setStatus("invalid"); }, 0);
       return () => { active = false; window.clearTimeout(timeout); };
     }
-
-    const { data: { subscription } } = sb.auth.onAuthStateChange((_event, session) => {
-      if (active && session?.access_token === recoveryToken) setStatus("ready");
+    void exchangeAuthCode(code).then((ok) => {
+      if (active) setStatus(ok ? "ready" : "invalid");
     });
-    const timeout = window.setTimeout(() => {
-      void sb.auth.getSession().then(({ data, error: err }) => {
-        if (!active) return;
-        setStatus(!err && data.session?.access_token === recoveryToken ? "ready" : "invalid");
-      }).catch(() => {
-        if (active) setStatus("invalid");
-      });
-    }, 600);
-    return () => {
-      active = false;
-      window.clearTimeout(timeout);
-      subscription.unsubscribe();
-    };
+    return () => { active = false; };
   }, [params]);
 
   if (status === "checking") return <div className="text-sm text-zinc-500">Menyiapkan sesi reset…</div>;

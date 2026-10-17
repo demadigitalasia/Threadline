@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import path from "node:path";
 import { pipeline } from "node:stream/promises";
 import { Readable } from "node:stream";
-import { createClient } from "@/lib/supabase/server";
+import { callBackend } from "@/lib/backend/server";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -92,27 +92,27 @@ function fileResponse(body: BodyInit, contentType: string, filename: string) {
   });
 }
 
-export async function GET(_request: Request, { params }: RouteContext) {
+export async function GET(request: Request, { params }: RouteContext) {
   const { fileId } = await params;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return htmlError("Masuk kembali untuk melihat file ini.", 401);
+  const sessionResponse = await callBackend("auth/session", request);
+  const session = sessionResponse.ok ? await sessionResponse.json() as { user: unknown } : { user: null };
+  if (!session.user) return htmlError("Masuk kembali untuk melihat file ini.", 401);
 
-  const { data: file, error } = await supabase
-    .from("job_files")
-    .select("name,path,file_kind,size_bytes")
-    .eq("id", fileId)
-    .maybeSingle();
-  if (error || !file) return htmlError("File tidak ditemukan atau Anda tidak memiliki akses.", 404);
+  const fileResponse = await callBackend("data/job_files", request, {
+    action: "select", columns: ["name", "path", "file_kind", "size_bytes"],
+    filters: [{ column: "id", operator: "eq", value: fileId }], maybeSingle: true,
+  });
+  const fileResult = fileResponse.ok ? await fileResponse.json() as { data: { name: string; path: string; file_kind: string; size_bytes: number } | null } : null;
+  const file = fileResult?.data;
+  if (!file) return htmlError("File tidak ditemukan atau Anda tidak memiliki akses.", 404);
   if (file.size_bytes > 1_073_741_824) return htmlError("Ukuran file melebihi batas pratinjau 1 GiB.", 413);
 
   const extension = extensions[file.file_kind];
   if (!extension) return htmlError("Format file ini belum didukung untuk pratinjau.", 415);
 
-  const { data: signed, error: signedError } = await supabase.storage
-    .from("job-files")
-    .createSignedUrl(file.path, 60);
-  if (signedError || !signed) return htmlError("Tautan file tidak dapat dibuat.", 500);
+  const signedResponse = await callBackend("storage/job-files/signed-url", request, { path: file.path });
+  const signed = signedResponse.ok ? await signedResponse.json() as { signedUrl: string } : null;
+  if (!signed) return htmlError("Tautan file tidak dapat dibuat.", 500);
 
   const original = await fetch(signed.signedUrl, { cache: "no-store" });
   if (!original.ok || !original.body) return htmlError("File gagal diambil dari penyimpanan.", 502);

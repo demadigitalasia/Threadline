@@ -1,8 +1,7 @@
-import { type NextRequest } from "next/server";
-import { updateSession } from "./lib/supabase/update-session";
+import { NextResponse, type NextRequest } from "next/server";
 
-export default async function proxy(request: NextRequest) {
-  return await updateSession(request);
+export default function proxy(_request: NextRequest) {
+  return NextResponse.next();
 }
 
 export const config = {

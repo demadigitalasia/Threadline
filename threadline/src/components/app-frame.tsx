@@ -268,7 +268,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
       )}
       {children}
       {tab !== "dashboard" && <footer className="px-1 pb-6 pt-6 text-xs text-zinc-500">
-        Data real dari Supabase (Auth + RLS + Realtime + Storage). Keputusan terbuka: pengingat Belum Ditugaskan.
+        Data real dari API Threadline, PostgreSQL, dan R2 privat. Keputusan terbuka: pengingat Belum Ditugaskan.
       </footer>}
     </AppShell>
   );

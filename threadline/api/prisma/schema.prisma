@@ -1,0 +1,288 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum JobStatus {
+  belum_ditugaskan @map("Belum Ditugaskan")
+  antre             @map("Antre")
+  dikerjakan        @map("Dikerjakan")
+  minta_acc         @map("MintaACC")
+  revisi            @map("Revisi")
+  acc               @map("ACC")
+  dibatalkan        @map("Dibatalkan")
+  finished          @map("Finished")
+
+  @@map("job_status")
+}
+
+enum JobPriority {
+  normal
+  express
+  @@map("job_priority")
+}
+
+enum JobType {
+  fullprint            @map("Fullprint")
+  printing_depan_saja  @map("Printing Depan Saja")
+  jersey_celana        @map("Jersey + Celana")
+  jaket                @map("Jaket")
+  @@map("job_type")
+}
+
+enum SubmissionDecision {
+  pending
+  approved
+  revision_requested
+  @@map("submission_decision")
+}
+
+enum UploadState {
+  active
+  committed
+  released
+  expired
+  @@map("upload_state")
+}
+
+model Profile {
+  id                         String    @id @db.Uuid
+  name                       String    @unique
+  role                       String    @default("freelance")
+  lastSeen                   DateTime  @default(now()) @map("last_seen") @db.Timestamptz(6)
+  isActive                   Boolean   @default(true) @map("is_active")
+  registrationStatus         String    @default("approved") @map("registration_status")
+  registrationReviewReason   String?   @map("registration_review_reason")
+  availabilityStatus         String    @default("pending") @map("availability_status")
+  availabilityUpdatedAt      DateTime? @map("availability_updated_at") @db.Timestamptz(6)
+  avatarPath                 String?   @map("avatar_path")
+  createdAt                  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt                  DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@map("profiles")
+}
+
+model Job {
+  id                     String      @id
+  tim                    String
+  jenis                  JobType
+  qty                    Int
+  deadline               DateTime    @db.Timestamptz(6)
+  fee                    BigInt
+  approvedFee            BigInt?     @map("approved_fee")
+  approvedForProfileId   String?     @map("approved_for_profile_id") @db.Uuid
+  assigneeProfileId      String?     @map("assignee_profile_id") @db.Uuid
+  status                 JobStatus   @default(belum_ditugaskan)
+  priority               JobPriority @default(normal)
+  brief                  String      @default("-")
+  ref                    String?
+  currentSubmissionId    String?     @map("current_submission_id") @db.Uuid
+  approvedSubmissionId   String?     @map("approved_submission_id") @db.Uuid
+  createdAt              DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  antreSince             DateTime?   @map("antre_since") @db.Timestamptz(6)
+  cancelledAt            DateTime?   @map("cancelled_at") @db.Timestamptz(6)
+  cancelledByProfileId   String?     @map("cancelled_by_profile_id") @db.Uuid
+  cancellationReason     String?     @map("cancellation_reason")
+  revision               Int         @default(1)
+  finishedAt             DateTime?   @map("finished_at") @db.Timestamptz(6)
+
+  @@map("jobs")
+}
+
+model JobFile {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobId                 String    @map("job_id")
+  name                  String
+  path                  String    @unique
+  fileKind              String    @map("file_kind")
+  sizeBytes             BigInt    @map("size_bytes")
+  uploadedByProfileId   String?   @map("uploaded_by_profile_id") @db.Uuid
+  uploadedAt            DateTime  @default(now()) @map("uploaded_at") @db.Timestamptz(6)
+  expiredAt             DateTime? @map("expired_at") @db.Timestamptz(6)
+  fileRole              String    @default("result") @map("file_role")
+  reservationId         String?   @map("reservation_id") @db.Uuid
+
+  @@map("job_files")
+}
+
+model JobSubmission {
+  id                    String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobId                 String             @map("job_id")
+  version               Int
+  submittedByProfileId  String?            @map("submitted_by_profile_id") @db.Uuid
+  submittedAt           DateTime           @default(now()) @map("submitted_at") @db.Timestamptz(6)
+  note                  String?
+  decision              SubmissionDecision @default(pending)
+  reviewNote            String?            @map("review_note")
+  reviewedByProfileId   String?            @map("reviewed_by_profile_id") @db.Uuid
+  reviewedAt            DateTime?          @map("reviewed_at") @db.Timestamptz(6)
+  submissionKind        String             @default("legacy") @map("submission_kind")
+
+  @@unique([jobId, version])
+  @@map("job_submissions")
+}
+
+model JobSubmissionFile {
+  submissionId String @map("submission_id") @db.Uuid
+  jobFileId    String @map("job_file_id") @db.Uuid
+
+  @@id([submissionId, jobFileId])
+  @@map("job_submission_files")
+}
+
+model JobEvent {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobId           String   @map("job_id")
+  actorProfileId  String?  @map("actor_profile_id") @db.Uuid
+  eventType       String   @map("event_type")
+  fromStatus      JobStatus? @map("from_status")
+  toStatus        JobStatus? @map("to_status")
+  reason          String?
+  details         Json     @default("{}")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("job_events")
+}
+
+model JobUploadReservation {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  jobId       String     @map("job_id")
+  profileId   String     @map("profile_id") @db.Uuid
+  sizeBytes   BigInt     @map("size_bytes")
+  state       UploadState @default(active)
+  expiresAt   DateTime   @default(dbgenerated("now() + interval '1 hour'")) @map("expires_at") @db.Timestamptz(6)
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  objectPath  String?    @map("object_path")
+  fileRole    String?    @map("file_role")
+
+  @@map("job_upload_reservations")
+}
+
+model AppSetting {
+  id              Int      @id
+  urgencySlaHours Decimal  @default(3) @map("urgency_sla_hours") @db.Decimal
+  maxActiveJobs   Int      @default(4) @map("max_active_jobs")
+  updatedAt       DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  updatedByProfileId String? @map("updated_by_profile_id") @db.Uuid
+
+  @@map("app_settings")
+}
+
+model ChatThread {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  freelanceProfileId   String   @unique @map("freelance_profile_id") @db.Uuid
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("chat_threads")
+}
+
+model ChatMessage {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  threadId         String   @map("thread_id") @db.Uuid
+  senderProfileId  String?  @map("sender_profile_id") @db.Uuid
+  text             String   @db.VarChar(500)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("chat_messages")
+}
+
+model ProfileContact {
+  profileId String @id @map("profile_id") @db.Uuid
+  whatsapp  String
+  @@map("profile_contacts")
+}
+
+model FreelancerBankAccount {
+  profileId      String   @id @map("profile_id") @db.Uuid
+  bankName       String   @map("bank_name")
+  accountNumber  String   @map("account_number")
+  accountHolder  String   @map("account_holder")
+  updatedAt      DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  @@map("freelancer_bank_accounts")
+}
+
+model FreelancerPaymentSetting {
+  profileId         String   @id @map("profile_id") @db.Uuid
+  payoutFrequency   String   @default("per_job") @map("payout_frequency")
+  payoutMethod      String   @default("bank_transfer") @map("payout_method")
+  updatedByProfileId String? @map("updated_by_profile_id") @db.Uuid
+  updatedAt         DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+  @@map("freelancer_payment_settings")
+}
+
+model FreelancerCompensation {
+  profileId String @id @map("profile_id") @db.Uuid
+  @@map("freelancer_compensation")
+}
+
+model ProfileRoleEvent {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  targetProfileId  String   @map("target_profile_id") @db.Uuid
+  oldRole          String   @map("old_role")
+  newRole          String   @map("new_role")
+  actorProfileId   String?  @map("actor_profile_id") @db.Uuid
+  actorLabel       String   @map("actor_label")
+  reason           String
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@map("profile_role_events")
+}
+
+model FreelancerPaymentRecord {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recipientProfileId    String   @map("recipient_profile_id") @db.Uuid
+  recipientLabel        String   @map("recipient_label")
+  snapshotBankName      String?  @map("snapshot_bank_name")
+  snapshotAccountNumber String?  @map("snapshot_account_number")
+  snapshotAccountHolder String?  @map("snapshot_account_holder")
+  amount                BigInt
+  paidAt                DateTime @map("paid_at") @db.Timestamptz(6)
+  bankReference         String   @map("bank_reference")
+  proofPath             String   @unique @map("proof_path")
+  note                  String   @default("")
+  status                String   @default("posted")
+  recordedByProfileId   String?  @map("recorded_by_profile_id") @db.Uuid
+  recordedAt            DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
+  voidedByProfileId     String?  @map("voided_by_profile_id") @db.Uuid
+  voidedAt              DateTime? @map("voided_at") @db.Timestamptz(6)
+  voidReason            String?  @map("void_reason")
+  @@map("freelancer_payment_records")
+}
+
+model FreelancerPaymentAllocation {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  paymentRecordId  String   @map("payment_record_id") @db.Uuid
+  jobId            String   @map("job_id")
+  amount           BigInt
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@unique([paymentRecordId, jobId])
+  @@map("freelancer_payment_allocations")
+}
+
+model FreelancerPaymentEvent {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  paymentRecordId  String?  @map("payment_record_id") @db.Uuid
+  targetProfileId  String?  @map("target_profile_id") @db.Uuid
+  actorProfileId   String?  @map("actor_profile_id") @db.Uuid
+  eventType        String   @map("event_type")
+  details          Json     @default("{}")
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@map("freelancer_payment_events")
+}
+
+model AdminAuditEvent {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventType        String   @map("event_type")
+  targetProfileId  String?  @map("target_profile_id") @db.Uuid
+  targetLabel      String   @map("target_label")
+  actorProfileId   String?  @map("actor_profile_id") @db.Uuid
+  actorLabel       String   @map("actor_label")
+  beforeData       Json     @default("{}") @map("before_data")
+  afterData        Json     @default("{}") @map("after_data")
+  reason           String
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  @@map("admin_audit_events")
+}

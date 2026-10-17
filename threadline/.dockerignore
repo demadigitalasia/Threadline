@@ -1,0 +1,10 @@
+.git
+.next
+node_modules
+.env
+.env.local
+api/node_modules
+api/dist
+api/.env
+supabase/.branches
+supabase/.temp

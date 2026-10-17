@@ -195,7 +195,7 @@ export interface JobFileMeta {
   id: string;
   jobId: string;
   name: string;
-  path?: string; // object path Supabase Storage (bukan URL publik)
+  path?: string; // object key privat; URL dibentuk API saat dibuka
   fileKind: "PDF" | "CDR" | "PNG" | "JPEG" | "SVG" | "DOCX" | "XLSX" | "PPTX" | "AI" | "PSD";
   fileRole: "reference" | "result" | "preview" | "source";
   sizeBytes: number;

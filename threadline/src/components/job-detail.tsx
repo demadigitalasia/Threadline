@@ -344,7 +344,7 @@ export function JobDetail({ jobId, onClose, onToast, now, navigation, onNavigate
         <section id="job-files" role="tabpanel" aria-labelledby="job-files-tab" tabIndex={0} hidden={activeSection !== "job-files"} className="glass-card-gradient overflow-hidden p-0">
         <SectionHeading title="Preview dan file asli" description="Kirim gambar untuk ditinjau Admin, lalu serahkan file CDR setelah disetujui." />
         <div className="space-y-4 p-3.5 sm:p-5">
-        {/* File real via Supabase Storage (backend R2 di produksi) */}
+                {/* File privat di R2 dikirim melalui tautan bertanda tangan. */}
         <FileSection job={job} onToast={onToast} busy={busy} setBusy={setBusy} />
         {/* Submission */}
         <SubmissionSection job={job} onToast={onToast} busy={busy} setBusy={setBusy} reason={reviewReason} setReason={setReviewReason} now={now} />

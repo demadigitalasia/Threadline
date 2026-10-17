@@ -1,19 +1,16 @@
 "use client";
 
-// Store real — adapter Supabase di balik antarmuka data kecil.
-// UI tidak memanggil Supabase langsung; semua lewat hook ini.
-// Otorisasi akhir tetap di RLS + RPC database, bukan di sini.
+// Store data memakai API Threadline; otorisasi akhir tetap di PostgreSQL.
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { createClient } from "./supabase/client";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type ThreadlineClient } from "./backend/client";
 import {
   hasOperationsAccess, validateFileKind, validateFreelancerBankAccount, type AccountDirectoryEntry, type AdminAuditEvent, type ChatMessage, type ChatThread,
   type FinanceMonthlyJob, type FinanceMonthlyPaymentRow, type FinancePaymentAuditRow, type FinancePaymentHistoryRow, type FinanceUnpaidJob, type FreelancerBankAccountDetails,
   type FreelancerBankAccount, type FreelancerPaymentSchedule, type FreelancerPaymentSetting, type FreelancerRegistrationRequest, type Job, type JobEvent, type JobFileMeta, type JobStatus, type Profile, type Role, type Submission,
 } from "./domain";
 
-type Sb = SupabaseClient;
+type Sb = ThreadlineClient;
 
 interface RpcOut { ok: boolean; error?: string; [k: string]: unknown }
 
@@ -648,7 +645,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       },
       reviewFreelancerRegistration: async (profileId, decision, reason) => {
         try {
-          const response = await fetch(`/api/freelancer-registrations/${profileId}/review`, {
+          const response = await fetch(`/api/backend/freelancer-registrations/${profileId}/review`, {
             method: "POST",
             headers: { "content-type": "application/json" },
             body: JSON.stringify({ decision, reason }),
