@@ -66,10 +66,6 @@ function encryptionKey(): Buffer {
   return key;
 }
 
-export function assertMfaEncryptionKey(): void {
-  encryptionKey();
-}
-
 export function encryptSecret(secret: string): string {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", encryptionKey(), iv);

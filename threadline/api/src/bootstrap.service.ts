@@ -2,7 +2,6 @@ import { Injectable, Logger, OnModuleInit } from "@nestjs/common";
 import { randomUUID } from "node:crypto";
 import bcrypt from "bcryptjs";
 import { PrismaService } from "./prisma/prisma.service";
-import { assertMfaEncryptionKey } from "./auth/crypto";
 
 @Injectable()
 export class BootstrapService implements OnModuleInit {
@@ -10,7 +9,6 @@ export class BootstrapService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService) {}
 
   async onModuleInit() {
-    assertMfaEncryptionKey();
     const email = process.env.INITIAL_SUPER_ADMIN_EMAIL?.trim().toLowerCase();
     const password = process.env.INITIAL_SUPER_ADMIN_PASSWORD;
     if (!email || !password) return;
