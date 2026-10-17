@@ -1,9 +1,3 @@
--- Source migration: 20261017000009_preview_workflow_statuses.sql
--- New workflow states. Keep this migration separate because PostgreSQL enum
--- values cannot be used until the transaction that adds them has committed.
-alter type public.job_status add value if not exists 'Preview';
-alter type public.job_status add value if not exists 'Finished';
-
 -- Source migration: 20261017000010_preview_workflow.sql
 -- Replace final-result approval with preview review, then final CDR delivery.
 
