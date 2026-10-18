@@ -50,7 +50,7 @@ export class AuthService {
     });
   }
 
-  async signIn(emailInput: string, password: string, otp?: string) {
+  async signIn(emailInput: string, password: string) {
     const email = emailInput.trim().toLowerCase();
     const row = await this.service(async (tx) => {
       const rows = await tx.$queryRaw`
@@ -65,16 +65,8 @@ export class AuthService {
     if (!row.email_confirmed_at) throw new UnauthorizedException({ code: "EMAIL_UNVERIFIED", message: "Verifikasi email terlebih dahulu" });
     if (!row.is_active && row.registration_status !== "pending") throw new UnauthorizedException({ code: "ACCOUNT_INACTIVE", message: "Akun tidak aktif" });
 
-    let aal: "aal1" | "aal2" = "aal1";
-    if (row.role === "super_admin") {
-      const factor = await this.service(async (tx) => {
-        const factors = await tx.$queryRaw`SELECT secret_ciphertext, confirmed_at FROM public.threadline_mfa_factors WHERE user_id = ${row.id}::uuid` as Array<{ secret_ciphertext: string; confirmed_at: Date | null }>;
-        return factors[0] ?? null;
-      });
-      if (!factor?.confirmed_at) throw new ConflictException({ code: "MFA_SETUP_REQUIRED", message: "Super Admin perlu mengaktifkan autentikator" });
-      if (!otp || !verifyTotp(decryptSecret(factor.secret_ciphertext), otp)) throw new ConflictException({ code: "MFA_REQUIRED", message: "Masukkan kode autentikator" });
-      aal = "aal2";
-    }
+    // Super Admin sign-in uses the same password-only flow; MFA is not required.
+    const aal: "aal1" = "aal1";
 
     const token = randomBytes(32).toString("base64url");
     await this.service(async (tx) => {
@@ -107,7 +99,7 @@ export class AuthService {
     const factors = await this.service(async (tx) => tx.$queryRaw`SELECT secret_ciphertext FROM public.threadline_mfa_factors WHERE user_id = ${row.id}::uuid AND confirmed_at IS NULL` as Array<{ secret_ciphertext: string }>);
     if (!factors[0] || !verifyTotp(decryptSecret(factors[0].secret_ciphertext), otp)) throw new BadRequestException("Kode autentikator tidak valid");
     await this.service(async (tx) => tx.$executeRaw`UPDATE public.threadline_mfa_factors SET confirmed_at = now() WHERE user_id = ${row.id}::uuid`);
-    return this.signIn(row.email, password, otp);
+    return this.signIn(row.email, password);
   }
 
   async signOut(cookieHeader?: string) {

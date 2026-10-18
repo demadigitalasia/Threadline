@@ -166,7 +166,7 @@ export class AdminController {
   @Post("freelancer-registrations/:profileId/review")
   async reviewRegistration(@Req() req: Request, @Param("profileId") profileId: string, @Body() input: { decision?: string; reason?: string } = {}) {
     const actor = await this.auth.resolve(req.headers.cookie);
-    if (!actor || !actor.isActive || !["admin", "super_admin"].includes(actor.role) || (actor.role === "super_admin" && actor.aal !== "aal2")) {
+    if (!actor || !actor.isActive || !["admin", "super_admin"].includes(actor.role)) {
       throw new ForbiddenException("Akses Admin atau Super Admin diperlukan.");
     }
     this.checkUuid(profileId);
@@ -184,7 +184,7 @@ export class AdminController {
 
   private async superAdmin(req: Request): Promise<AuthIdentity> {
     const actor = await this.auth.resolve(req.headers.cookie);
-    if (!actor || !actor.isActive || actor.role !== "super_admin" || actor.aal !== "aal2") throw new ForbiddenException("Akses Super Admin dengan autentikator diperlukan.");
+    if (!actor || !actor.isActive || actor.role !== "super_admin") throw new ForbiddenException("Akses Super Admin diperlukan.");
     return actor;
   }
 

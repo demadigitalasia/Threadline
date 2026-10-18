@@ -15,8 +15,8 @@ export class AuthController {
   }
 
   @Post("sign-in")
-  async signIn(@Req() req: Request, @Res({ passthrough: true }) res: Response, @Body() body: { email: string; password: string; otp?: string }) {
-    const result = await this.auth.signIn(body.email, body.password, body.otp);
+  async signIn(@Req() req: Request, @Res({ passthrough: true }) res: Response, @Body() body: { email: string; password: string }) {
+    const result = await this.auth.signIn(body.email, body.password);
     res.setHeader("Set-Cookie", this.auth.setSessionCookie(result.token, this.secure(req)));
     return { user: result.user };
   }

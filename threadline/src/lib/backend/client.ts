@@ -118,7 +118,7 @@ class RealtimeChannel {
 
 export class ThreadlineClient {
   readonly auth = {
-    signInWithPassword: async (input: { email: string; password: string; otp?: string }) => {
+    signInWithPassword: async (input: { email: string; password: string }) => {
       try {
         const data = await request<{ user: AuthUser }>("auth/sign-in", { method: "POST", body: JSON.stringify(input) });
         notifyAuth("SIGNED_IN");
