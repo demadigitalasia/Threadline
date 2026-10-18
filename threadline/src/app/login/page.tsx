@@ -59,7 +59,7 @@ export default function LoginPage() {
     <AuthShell
       title="Selamat datang kembali"
       subtitle="Masuk untuk mengelola proyek dan kolaborasi tim freelance Anda."
-      footnote="Akun Freelancer perlu memverifikasi email terlebih dahulu, lalu menunggu tinjauan Admin atau Super Admin."
+      footnote="Akun Freelancer perlu memverifikasi email terlebih dahulu, lalu menunggu tinjauan Admin."
       split={<AuthHighlights />}
     >
       <form

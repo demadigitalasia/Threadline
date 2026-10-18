@@ -70,7 +70,7 @@ export function AuthShell({ title, subtitle, children, split, footnote, variant 
             </p>
           ) : (
             <p className="relative z-10 border-t border-white/20 pt-4 text-xs leading-relaxed text-white/75">
-              Admin dan Super Admin mengelola proyek; Freelancer mengerjakan tugas, sementara Finance memantau rekap fee.
+              Admin mengelola proyek; Freelancer mengerjakan tugas, sementara Finance memantau rekap fee.
             </p>
           )}
         </div>
