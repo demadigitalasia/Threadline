@@ -51,7 +51,7 @@ export function AuthShell({ title, subtitle, children, split, footnote, variant 
                 </p>
                 <ol className="mt-6 space-y-3">
                   <RegisterStep number="01" title="Kirim data pendaftaran" desc="Isi nama lengkap, email, WhatsApp, dan kata sandi." />
-                  <RegisterStep number="02" title="Tunggu pemeriksaan admin" desc="Admin atau Super Admin akan menyetujui atau menolak pendaftaran Anda." />
+                  <RegisterStep number="02" title="Tunggu pemeriksaan admin" desc="Admin akan menyetujui atau menolak pendaftaran Anda." />
                   <RegisterStep number="03" title="Mulai setelah disetujui" desc="Masuk untuk menerima tugas dan memantau progres pekerjaan." />
                 </ol>
               </>
@@ -66,7 +66,7 @@ export function AuthShell({ title, subtitle, children, split, footnote, variant 
           </div>
           {variant === "register" ? (
             <p className="relative z-10 border-t border-white/20 pt-4 text-xs leading-relaxed text-white/75">
-              Pendaftaran ditinjau manual oleh Admin atau Super Admin sebelum akun dapat digunakan.
+              Pendaftaran ditinjau manual oleh Admin sebelum akun dapat digunakan.
             </p>
           ) : (
             <p className="relative z-10 border-t border-white/20 pt-4 text-xs leading-relaxed text-white/75">
@@ -80,7 +80,7 @@ export function AuthShell({ title, subtitle, children, split, footnote, variant 
             {variant === "register" ? (
               <>
                 <p className="mt-4 text-[10px] font-bold uppercase tracking-[0.2em] text-teal-100">Mulai di Threadline</p>
-                <p className="mt-1 max-w-sm text-sm leading-relaxed text-white/80">Ajukan profil. Admin atau Super Admin akan meninjau sebelum akses dibuka.</p>
+                <p className="mt-1 max-w-sm text-sm leading-relaxed text-white/80">Ajukan profil. Admin akan meninjau sebelum akses dibuka.</p>
               </>
             ) : (
               <p className="mt-3 max-w-sm text-sm leading-relaxed text-white/80">Satu ruang kerja untuk proyek dan kolaborasi freelancer.</p>

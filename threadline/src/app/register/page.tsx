@@ -18,7 +18,7 @@ export default function RegisterPage() {
   return (
     <AuthShell
       title="Daftar sebagai Freelancer"
-      subtitle="Isi data Anda untuk mengajukan akun freelancer. Admin atau Super Admin akan meninjau pendaftaran sebelum akses dibuka."
+      subtitle="Isi data Anda untuk mengajukan akun freelancer. Admin akan meninjau pendaftaran sebelum akses dibuka."
       variant="register"
     >
       {!sentTo ? (
@@ -85,7 +85,7 @@ export default function RegisterPage() {
       ) : (
         <div className="space-y-2 text-sm">
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-2.5 text-xs font-medium text-emerald-900">
-            Jika email <b>{sentTo}</b> dapat didaftarkan, tautan verifikasi akan dikirim. Verifikasi email terlebih dahulu; setelah itu Admin atau Super Admin akan meninjau pendaftaran Anda. Periksa juga folder spam.
+            Jika email <b>{sentTo}</b> dapat didaftarkan, tautan verifikasi akan dikirim. Verifikasi email terlebih dahulu; setelah itu Admin akan meninjau pendaftaran Anda. Periksa juga folder spam.
           </div>
           <Link href="/login" className="btn-primary block rounded-xl px-3 py-2.5 text-center text-sm font-semibold text-white">Ke halaman masuk →</Link>
         </div>
