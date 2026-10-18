@@ -5,8 +5,8 @@ services:
     environment:
       POSTGRES_DB: threadline
       POSTGRES_USER: ${POSTGRES_USER:-threadline_owner}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
-      THREADLINE_APP_PASSWORD: ${THREADLINE_APP_PASSWORD:?Set THREADLINE_APP_PASSWORD in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-}
+      THREADLINE_APP_PASSWORD: ${THREADLINE_APP_PASSWORD:-}
     volumes:
       - threadline_postgres:/var/lib/postgresql/data
       - ./database/init:/docker-entrypoint-initdb.d:ro
@@ -26,8 +26,8 @@ services:
       NODE_ENV: production
       PORT: 3001
       FRONTEND_URL: ${FRONTEND_URL:?Set FRONTEND_URL in .env}
-      DATABASE_URL: postgresql://threadline_app:${THREADLINE_APP_PASSWORD:?Set THREADLINE_APP_PASSWORD in .env}@db:5432/threadline
-      MIGRATION_DATABASE_URL: postgresql://${POSTGRES_USER:-threadline_owner}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}@db:5432/threadline
+      DATABASE_URL: postgresql://threadline_app:${THREADLINE_APP_PASSWORD:-}@db:5432/threadline
+      MIGRATION_DATABASE_URL: postgresql://${POSTGRES_USER:-threadline_owner}:${POSTGRES_PASSWORD:-}@db:5432/threadline
       R2_ENDPOINT: ${R2_ENDPOINT:-}
       R2_BUCKET: ${R2_BUCKET:-threadline-private}
       R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID:-}
