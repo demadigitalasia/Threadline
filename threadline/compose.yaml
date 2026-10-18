@@ -26,6 +26,8 @@ services:
       NODE_ENV: production
       PORT: 3001
       FRONTEND_URL: ${FRONTEND_URL:?Set FRONTEND_URL in .env}
+      INITIAL_SUPER_ADMIN_EMAIL: ${INITIAL_SUPER_ADMIN_EMAIL:-}
+      INITIAL_SUPER_ADMIN_PASSWORD: ${INITIAL_SUPER_ADMIN_PASSWORD:-}
       DATABASE_URL: postgresql://threadline_app:${THREADLINE_APP_PASSWORD:-}@db:5432/threadline
       MIGRATION_DATABASE_URL: postgresql://${POSTGRES_USER:-threadline_owner}:${POSTGRES_PASSWORD:-}@db:5432/threadline
       R2_ENDPOINT: ${R2_ENDPOINT:-}
