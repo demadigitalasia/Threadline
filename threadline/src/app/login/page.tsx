@@ -69,7 +69,17 @@ export default function LoginPage() {
             const client = createClient();
             const { error: err } = await client.auth.signInWithPassword({ email: email.trim(), password });
             if (err) {
-              setError("Email atau kata sandi salah.");
+              if (err.code === "INVALID_CREDENTIALS") {
+                setError("Email atau kata sandi salah.");
+              } else if (err.code === "EMAIL_UNVERIFIED") {
+                setError("Verifikasi email terlebih dahulu.");
+              } else if (err.code === "ACCOUNT_INACTIVE") {
+                setError("Akun tidak aktif. Hubungi Admin.");
+              } else if (err.code === "ORIGIN_NOT_ALLOWED" || err.status === 403) {
+                setError("Permintaan login diblokir oleh pemeriksaan keamanan server.");
+              } else {
+                setError("Login sedang bermasalah. Coba lagi beberapa saat.");
+              }
               return;
             }
             router.push("/dashboard");

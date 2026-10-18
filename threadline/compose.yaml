@@ -63,6 +63,7 @@ services:
       NODE_ENV: production
       PORT: 3000
       THREADLINE_API_URL: http://api:3001
+      THREADLINE_PUBLIC_ORIGINS: "${FRONTEND_URL:?Set FRONTEND_URL in .env},${THREADLINE_ADDITIONAL_ORIGINS:-}"
     expose:
       - "3000"
     depends_on:

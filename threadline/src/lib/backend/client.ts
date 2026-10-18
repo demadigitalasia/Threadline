@@ -1,6 +1,6 @@
 "use client";
 
-type ApiError = { message: string; code?: string };
+type ApiError = { message: string; code?: string; status?: number };
 type Result<T = unknown> = { data: T | null; error: ApiError | null };
 type AuthUser = { id: string; email?: string | null; email_confirmed_at?: string | null };
 type DbRow = Record<string, unknown>;
@@ -26,8 +26,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 function resultOf<T>(data: T | null, error: ApiError | null = null): Result<T> { return { data, error }; }
 function toApiError(error: unknown): ApiError {
-  const e = error as Error & { code?: string };
-  return { message: e?.message || "Permintaan gagal", ...(e?.code ? { code: e.code } : {}) };
+  const e = error as Error & { code?: string; status?: number };
+  return {
+    message: e?.message || "Permintaan gagal",
+    ...(e?.code ? { code: e.code } : {}),
+    ...(e?.status ? { status: e.status } : {}),
+  };
 }
 function notifyAuth(event: "SIGNED_IN" | "SIGNED_OUT" | "USER_UPDATED") {
   if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("threadline:auth", { detail: event }));

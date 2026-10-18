@@ -3,10 +3,29 @@ import { NextRequest } from "next/server";
 type RouteContext = { params: Promise<{ path: string[] }> };
 export const dynamic = "force-dynamic";
 
+function normalizeOrigin(value: string | null | undefined): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.origin : null;
+  } catch {
+    return null;
+  }
+}
+
+function allowedOrigins(request: NextRequest): Set<string> {
+  const configured = process.env.THREADLINE_PUBLIC_ORIGINS;
+  if (!configured?.trim()) return new Set([request.nextUrl.origin]);
+  return new Set(configured.split(",").map((value) => normalizeOrigin(value.trim())).filter((value): value is string => value !== null));
+}
+
 async function forward(request: NextRequest, context: RouteContext) {
   const origin = request.headers.get("origin");
-  if (origin && new URL(origin).origin !== request.nextUrl.origin) {
-    return Response.json({ message: "Permintaan lintas origin ditolak" }, { status: 403 });
+  if (origin) {
+    const requestOrigin = normalizeOrigin(origin);
+    if (!requestOrigin || !allowedOrigins(request).has(requestOrigin)) {
+      return Response.json({ code: "ORIGIN_NOT_ALLOWED", message: "Permintaan lintas origin ditolak" }, { status: 403 });
+    }
   }
   const base = process.env.THREADLINE_API_URL ?? "http://localhost:3001";
   const { path } = await context.params;
