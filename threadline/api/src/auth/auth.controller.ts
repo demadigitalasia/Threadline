@@ -30,7 +30,7 @@ export class AuthController {
 
   @Post("sign-up")
   signUp(@Body() body: { email: string; password: string; data?: { name?: string; whatsapp?: string } }) {
-    return this.auth.signUp(body.email, body.password, body.data ?? {}, this.frontendUrl());
+    return this.auth.signUp(body.email, body.password, body.data ?? {});
   }
 
   @Post("reset-password")

@@ -13,7 +13,7 @@ export default function RegisterPage() {
   const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [submitted, setSubmitted] = useState(false);
 
   return (
     <AuthShell
@@ -21,7 +21,7 @@ export default function RegisterPage() {
       subtitle="Isi data Anda untuk mengajukan akun freelancer. Admin akan meninjau pendaftaran sebelum akses dibuka."
       variant="register"
     >
-      {!sentTo ? (
+      {!submitted ? (
         <form
           className="space-y-3"
           onSubmit={async (e) => {
@@ -51,7 +51,7 @@ export default function RegisterPage() {
               }
               // Keep the same response for successful, duplicate, and rejected
               // sign-ups so this screen cannot confirm whether an email exists.
-              setSentTo(email.trim());
+              setSubmitted(true);
             } catch {
               setError("Tidak dapat terhubung. Periksa koneksi lalu coba lagi.");
             } finally {
@@ -85,7 +85,7 @@ export default function RegisterPage() {
       ) : (
         <div className="space-y-2 text-sm">
           <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-2.5 text-xs font-medium text-emerald-900">
-            Jika email <b>{sentTo}</b> dapat didaftarkan, tautan verifikasi akan dikirim. Verifikasi email terlebih dahulu; setelah itu Admin akan meninjau pendaftaran Anda. Periksa juga folder spam.
+            Permintaan pendaftaran telah diproses. Admin akan meninjau data Anda. Anda dapat masuk untuk melihat status; akses kerja dibuka setelah disetujui. Jika akun Anda sudah ada, silakan masuk.
           </div>
           <Link href="/login" className="btn-primary block rounded-xl px-3 py-2.5 text-center text-sm font-semibold text-white">Ke halaman masuk →</Link>
         </div>

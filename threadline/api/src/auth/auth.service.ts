@@ -62,8 +62,14 @@ export class AuthService {
       return rows[0] ?? null;
     });
     if (!row || !(await bcrypt.compare(password, row.encrypted_password))) throw new UnauthorizedException({ code: "INVALID_CREDENTIALS", message: "Email atau kata sandi salah" });
-    if (!row.email_confirmed_at) throw new UnauthorizedException({ code: "EMAIL_UNVERIFIED", message: "Verifikasi email terlebih dahulu" });
-    if (!row.is_active && row.registration_status !== "pending") throw new UnauthorizedException({ code: "ACCOUNT_INACTIVE", message: "Akun tidak aktif" });
+    if (!row.is_active && !(row.role === "freelance" && row.registration_status === "pending")) {
+      throw new UnauthorizedException({ code: "ACCOUNT_INACTIVE", message: "Akun tidak aktif" });
+    }
+    const freelancerRegistration = row.role === "freelance"
+      && (row.registration_status === "pending" || row.registration_status === "approved");
+    if (!row.email_confirmed_at && !freelancerRegistration) {
+      throw new UnauthorizedException({ code: "EMAIL_UNVERIFIED", message: "Verifikasi email terlebih dahulu" });
+    }
 
     // Super Admin sign-in uses the same password-only flow; MFA is not required.
     const aal: "aal1" = "aal1";
@@ -116,7 +122,7 @@ export class AuthService {
     });
   }
 
-  async signUp(emailInput: string, password: string, metadata: { name?: string; whatsapp?: string }, frontendUrl: string) {
+  async signUp(emailInput: string, password: string, metadata: { name?: string; whatsapp?: string }) {
     const email = emailInput.trim().toLowerCase();
     const name = metadata.name?.trim() ?? "";
     const whatsapp = metadata.whatsapp?.trim() ?? "";
@@ -124,35 +130,19 @@ export class AuthService {
       || name.length < 3 || name.length > 100 || (whatsapp && !/^\+?[0-9(). -]{8,24}$/.test(whatsapp))) {
       throw new BadRequestException("Data pendaftaran tidak valid");
     }
-    if (!process.env.SMTP_HOST || !process.env.SMTP_FROM) throw new ServiceUnavailableException("Email belum dikonfigurasi pada server");
     const userId = randomUUID();
     const passwordHash = await bcrypt.hash(password, 12);
-    const created = await this.service(async (tx) => {
+    await this.service(async (tx) => {
       const rows = await tx.$queryRaw`INSERT INTO auth.users(id, email, encrypted_password, raw_user_meta_data)
         VALUES (${userId}::uuid, ${email}, ${passwordHash}, ${JSON.stringify({ name })}::jsonb)
         ON CONFLICT DO NOTHING RETURNING id::text` as Array<{ id: string }>;
-      if (!rows[0]) return false;
+      if (!rows[0]) return;
       if (whatsapp) await tx.$executeRaw`INSERT INTO public.profile_contacts(profile_id, whatsapp)
         VALUES (${userId}::uuid, ${whatsapp}) ON CONFLICT (profile_id) DO UPDATE SET whatsapp = EXCLUDED.whatsapp`;
-      return true;
     });
-    if (!created) {
-      const pending = await this.service(async (tx) => tx.$queryRaw`SELECT id::text FROM auth.users
-        WHERE lower(email) = ${email} AND email_confirmed_at IS NULL LIMIT 1` as Array<{ id: string }>);
-      if (pending[0]) {
-        try { await this.sendOneTimeLink(email, pending[0].id, "verify_email", frontendUrl, "/verifikasi-email"); }
-        catch (error) { if (!(error instanceof ServiceUnavailableException)) throw error; }
-      }
-      return { accepted: true };
-    }
-    try {
-      await this.sendOneTimeLink(email, userId, "verify_email", frontendUrl, "/verifikasi-email");
-    } catch (error) {
-      await this.service(async (tx) => {
-        await tx.$executeRaw`DELETE FROM auth.users WHERE id = ${userId}::uuid`;
-      });
-      if (!(error instanceof ServiceUnavailableException)) throw error;
-    }
+    // Registration is gated by Admin review, so it must not depend on SMTP.
+    // Keep duplicate and successful submissions indistinguishable to avoid
+    // exposing whether an email is already registered.
     return { accepted: true };
   }
 
@@ -162,7 +152,7 @@ export class AuthService {
       return { accepted: true };
     }
     const email = emailInput.trim().toLowerCase();
-    const rows = await this.service(async (tx) => tx.$queryRaw`SELECT id::text FROM auth.users WHERE lower(email) = ${email} AND email_confirmed_at IS NOT NULL` as Array<{ id: string }>);
+    const rows = await this.service(async (tx) => tx.$queryRaw`SELECT id::text FROM auth.users WHERE lower(email) = ${email}` as Array<{ id: string }>);
     if (rows[0]) {
       try { await this.sendOneTimeLink(email, rows[0].id, "password_reset", frontendUrl, "/reset-password"); }
       catch (error) { if (strictDelivery || !(error instanceof ServiceUnavailableException)) throw error; }

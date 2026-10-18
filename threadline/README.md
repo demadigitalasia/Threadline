@@ -14,7 +14,7 @@ The first API start applies the checked-in Prisma migration. It creates the Post
 
 Prisma manages the schema migration and PostgreSQL connection. Existing transactional job, finance, and access rules remain in PostgreSQL functions and row level security, called by the NestJS API with the authenticated database role.
 
-SMTP settings are needed for freelancer verification and password reset email. Registration reports a configuration error if SMTP is missing; public reset and resend requests keep a generic response so they do not disclose whether an email belongs to an account. No link is sent until SMTP works.
+Freelancer registration does not send verification email. Admin review is the gate: pending freelancers can sign in only to see their review status, and approved freelancers can use the system. SMTP is only needed for password reset and optional email verification links. Public reset and resend requests keep a generic response so they do not disclose whether an email belongs to an account.
 
 ## Required deployment settings
 
@@ -22,7 +22,7 @@ SMTP settings are needed for freelancer verification and password reset email. R
 - `R2_ENDPOINT`, `R2_BUCKET`, `R2_ACCESS_KEY_ID`, and `R2_SECRET_ACCESS_KEY`: use the S3 API endpoint and a bucket scoped token. Do not make the bucket public.
 - `MFA_ENCRYPTION_KEY` (optional): base64 encoding of 32 random bytes, needed only for optional authenticator enrollment. Keep a protected backup; changing it prevents decrypting enrolled authenticator secrets.
 - `FRONTEND_URL`: the exact HTTPS origin, including the temporary `sslip.io` hostname if that is what Coolify serves.
-- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`: set these before allowing account registration or password reset.
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`: set these to enable password reset and optional email verification links. They are not required for registration.
 
 ## Database notes
 
